@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05060f" />
+<title>Happy Birthday, Thomas 🎂</title>
+<style>
+  :root { --gold:#ffcf4d; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#05060f; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color:#fff; -webkit-font-smoothing:antialiased; touch-action:none;
+  }
+  #scene { position:fixed; inset:0; display:block; }
+
+  /* ---------- Caption layer ---------- */
+  #captions { position:fixed; inset:0; pointer-events:none; display:flex;
+    align-items:flex-end; justify-content:center; padding:0 6vw 14vh; z-index:5; }
+  #cap {
+    text-align:center; max-width:900px; opacity:0; transform:translateY(28px) scale(.96);
+    transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1);
+    text-shadow: 0 2px 24px rgba(0,0,0,.85), 0 0 40px rgba(0,0,0,.6);
+  }
+  #cap.show { opacity:1; transform:translateY(0) scale(1); }
+  #cap .lead { font-size: clamp(13px, 3.4vw, 22px); letter-spacing:.32em;
+    text-transform:uppercase; color:var(--gold); font-weight:600; opacity:.9; margin-bottom:.5em; }
+  #cap .main { font-size: clamp(26px, 7.2vw, 64px); font-weight:800; line-height:1.05;
+    letter-spacing:-.01em; }
+  #cap .sub { margin-top:.6em; font-size: clamp(14px, 3.6vw, 22px); font-weight:400;
+    opacity:.92; line-height:1.35; }
+
+  /* ---------- Start gate ---------- */
+  #gate { position:fixed; inset:0; z-index:30; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:26px; text-align:center; padding:8vw;
+    background:radial-gradient(circle at 50% 35%, #11173a 0%, #05060f 70%);
+    transition:opacity .8s ease; }
+  #gate.hide { opacity:0; pointer-events:none; }
+  #gate h1 { font-size:clamp(30px,9vw,76px); font-weight:800; line-height:1.05;
+    background:linear-gradient(90deg,#ffe69a,#ffcf4d,#ff8a3d);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 6px 30px rgba(255,160,60,.35)); }
+  #gate p { font-size:clamp(14px,4vw,20px); opacity:.8; max-width:540px; }
+  #startBtn {
+    pointer-events:auto; cursor:pointer; border:none; border-radius:999px;
+    padding:18px 46px; font-size:clamp(16px,4.6vw,22px); font-weight:700; color:#1a1206;
+    background:linear-gradient(90deg,#ffe69a,#ffcf4d); letter-spacing:.02em;
+    box-shadow:0 10px 40px rgba(255,180,60,.45), inset 0 0 0 1px rgba(255,255,255,.4);
+    transition:transform .15s ease, box-shadow .15s ease; animation:pulse 2.2s ease-in-out infinite; }
+  #startBtn:active { transform:scale(.96); }
+  @keyframes pulse { 0%,100%{ box-shadow:0 10px 40px rgba(255,180,60,.4);}
+    50%{ box-shadow:0 14px 60px rgba(255,180,60,.75);} }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; top:max(14px,env(safe-area-inset-top)); right:16px; z-index:20;
+    display:flex; gap:10px; }
+  .chip { pointer-events:auto; cursor:pointer; width:42px; height:42px; border-radius:50%;
+    border:1px solid rgba(255,255,255,.18); background:rgba(12,16,38,.5);
+    backdrop-filter:blur(8px); color:#fff; font-size:18px; display:flex;
+    align-items:center; justify-content:center; transition:background .2s, transform .15s; }
+  .chip:active { transform:scale(.9); }
+  #hud.hidden { opacity:0; pointer-events:none; transition:opacity .5s; }
+
+  #progress { position:fixed; left:0; bottom:0; height:3px; width:0%; z-index:20;
+    background:linear-gradient(90deg,#ffe69a,#ffcf4d,#ff8a3d); box-shadow:0 0 12px #ffcf4d;
+    transition:width .15s linear; opacity:.85; }
+
+  /* ---------- Replay ---------- */
+  #replay { position:fixed; inset:0; z-index:25; display:none; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px; }
+  #replay.show { display:flex; animation:fadein 1s ease both; }
+  @keyframes fadein { from{opacity:0} to{opacity:1} }
+  #replayBtn { pointer-events:auto; cursor:pointer; border:1px solid rgba(255,255,255,.25);
+    background:rgba(12,16,38,.55); backdrop-filter:blur(8px); color:#fff; border-radius:999px;
+    padding:14px 30px; font-size:16px; font-weight:600; }
+  .credit { position:fixed; bottom:max(12px,env(safe-area-inset-bottom)); left:0; right:0;
+    text-align:center; font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:rgba(255,255,255,.35); z-index:6; pointer-events:none; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="captions"><div id="cap">
+    <div class="lead"></div><div class="main"></div><div class="sub"></div>
+  </div></div>
+
+  <div id="hud" class="hidden">
+    <button class="chip" id="muteBtn" title="Sound">🔊</button>
+  </div>
+  <div id="progress"></div>
+
+  <div id="replay">
+    <button id="replayBtn">↻ Play again</button>
+  </div>
+
+  <div class="credit">made with 💛</div>
+
+  <div id="gate">
+    <h1>Happy Birthday,<br>Thomas</h1>
+    <p>A little something special — best with sound on. <br>Tap below to begin.</p>
+    <button id="startBtn">▶ Start the show</button>
+  </div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+/* ======================================================================
+   Setup
+   ====================================================================== */
+const canvas = document.getElementById('scene');
+const isMobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
+const COUNT = isMobile ? 4200 : 8000;        // particle count
+const SCALE = 13;                            // world scale of the cloud
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:!isMobile, alpha:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isMobile ? 2 : 2));
+renderer.setClearColor(0x05060f, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05060f, 0.012);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(0, 0, 26);
+
+/* ---- Bloom for the glow ---- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight),
+  isMobile ? 0.9 : 1.15,   // strength
+  0.75,                    // radius
+  0.0);                    // threshold
+composer.addPass(bloom);
+
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h); composer.setSize(w, h);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ======================================================================
+   Background: starfield + synthwave grid
+   ====================================================================== */
+function makeStars(n){
+  const g = new THREE.BufferGeometry();
+  const p = new Float32Array(n*3), c = new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const r = 60 + Math.random()*70;
+    const th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+    p[i*3]   = r*Math.sin(ph)*Math.cos(th);
+    p[i*3+1] = r*Math.sin(ph)*Math.sin(th);
+    p[i*3+2] = -20 - Math.random()*90;
+    const t = Math.random();
+    c[i*3]=0.6+0.4*t; c[i*3+1]=0.7+0.3*t; c[i*3+2]=1.0;
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(p,3));
+  g.setAttribute('color', new THREE.BufferAttribute(c,3));
+  const m = new THREE.PointsMaterial({ size:0.5, map:dot, transparent:true,
+    depthWrite:false, blending:THREE.AdditiveBlending, vertexColors:true, opacity:.9 });
+  return new THREE.Points(g, m);
+}
+
+/* circular soft sprite */
+function softDot(){
+  const s=64, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  const x=cv.getContext('2d'); const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.35,'rgba(255,255,255,.85)');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,s,s);
+  const t=new THREE.CanvasTexture(cv); return t;
+}
+const dot = softDot();
+const stars = makeStars(isMobile?500:900); scene.add(stars);
+
+/* tilted glowing grid that streams toward the camera */
+const grid = new THREE.GridHelper(120, 60, 0x2a4cff, 0x16204d);
+grid.material.transparent = true; grid.material.opacity = 0.22;
+grid.position.set(0,-9,0); grid.rotation.x = 0; scene.add(grid);
+
+/* ======================================================================
+   Particle cloud (the star of the show)
+   ====================================================================== */
+const pos   = new Float32Array(COUNT*3);   // live positions
+const fromP = new Float32Array(COUNT*3);   // morph start
+const targP = new Float32Array(COUNT*3);   // morph target
+const col   = new Float32Array(COUNT*3);   // live colors
+const targC = new Float32Array(COUNT*3);   // target colors
+const seed  = new Float32Array(COUNT);     // per-particle randomness
+
+for(let i=0;i<COUNT;i++){
+  const r=40+Math.random()*30, th=Math.random()*6.283, ph=Math.acos(2*Math.random()-1);
+  pos[i*3]=r*Math.sin(ph)*Math.cos(th); pos[i*3+1]=r*Math.sin(ph)*Math.sin(th); pos[i*3+2]=r*Math.cos(ph);
+  col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; seed[i]=Math.random();
+}
+const cloudGeo = new THREE.BufferGeometry();
+cloudGeo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+cloudGeo.setAttribute('color',    new THREE.BufferAttribute(col,3));
+const cloudMat = new THREE.PointsMaterial({
+  size: isMobile?0.17:0.15, map:dot, vertexColors:true, transparent:true,
+  depthWrite:false, blending:THREE.AdditiveBlending, opacity:.95, sizeAttenuation:true });
+const cloud = new THREE.Points(cloudGeo, cloudMat);
+scene.add(cloud);
+
+/* ======================================================================
+   Shape samplers — draw to a canvas, read pixels, return [-1..1] points
+   ====================================================================== */
+const CW=520, CH=300;
+const sc = document.createElement('canvas'); sc.width=CW; sc.height=CH;
+const sx = sc.getContext('2d');
+
+function sampleDraw(drawFn, gap=3){
+  sx.clearRect(0,0,CW,CH); sx.fillStyle='#fff'; drawFn(sx);
+  const data = sx.getImageData(0,0,CW,CH).data;
+  const pts=[];
+  for(let y=0;y<CH;y+=gap){
+    for(let x=0;x<CW;x+=gap){
+      if(data[(y*CW+x)*4+3] > 128){
+        const jx=(Math.random()-.5)*gap, jy=(Math.random()-.5)*gap;
+        pts.push([ (x+jx-CW/2)/(CH/2), -(y+jy-CH/2)/(CH/2) ]);
+      }
+    }
+  }
+  return pts;
+}
+function fitText(ctx, text, maxW, weight=800, family='Arial, sans-serif'){
+  let fs=200;
+  do { ctx.font=`${weight} ${fs}px ${family}`; fs-=2; }
+  while(ctx.measureText(text).width > maxW && fs>10);
+  return fs;
+}
+function textPoints(lines, gap=3){
+  return sampleDraw(ctx=>{
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const maxW=CW*0.92, n=lines.length;
+    const lh=CH/(n+0.4);
+    lines.forEach((ln,i)=>{
+      const fs=fitText(ctx, ln, maxW, 800);
+      ctx.font=`800 ${Math.min(fs,lh*0.92)}px Arial, sans-serif`;
+      ctx.fillText(ln, CW/2, lh*(i+0.7));
+    });
+  }, gap);
+}
+
+/* themed icon drawings */
+function crystalPoints(){            // hextech diamond + facets (League)
+  return sampleDraw(ctx=>{
+    const cx=CW/2, cy=CH/2, w=120, h=160;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy-h); ctx.lineTo(cx+w,cy-h*0.25); ctx.lineTo(cx+w*0.55,cy+h);
+    ctx.lineTo(cx-w*0.55,cy+h); ctx.lineTo(cx-w,cy-h*0.25); ctx.closePath();
+    ctx.lineWidth=10; ctx.strokeStyle='#fff'; ctx.fill();
+    // inner facet lines drawn as thin fills
+    ctx.globalCompositeOperation='destination-out'; ctx.lineWidth=4; ctx.strokeStyle='#000';
+    ctx.beginPath();
+    ctx.moveTo(cx,cy-h); ctx.lineTo(cx,cy+h);
+    ctx.moveTo(cx-w,cy-h*0.25); ctx.lineTo(cx+w,cy-h*0.25);
+    ctx.moveTo(cx,cy-h); ctx.lineTo(cx-w*0.55,cy+h);
+    ctx.moveTo(cx,cy-h); ctx.lineTo(cx+w*0.55,cy+h);
+    ctx.stroke(); ctx.globalCompositeOperation='source-over';
+  }, 3);
+}
+function skylinePoints(){            // Baltimore-ish skyline (The Wire)
+  return sampleDraw(ctx=>{
+    const base=CH*0.86; let x=CW*0.06;
+    const heights=[70,120,90,160,110,200,130,95,150,80,170,100];
+    let i=0;
+    while(x<CW*0.94){
+      const w=18+Math.random()*22; const h=heights[i%heights.length]*(0.7+Math.random()*0.5);
+      ctx.fillRect(x, base-h, w, h);
+      // a few lit windows knocked out
+      ctx.globalCompositeOperation='destination-out';
+      for(let wy=base-h+8; wy<base-6; wy+=14)
+        for(let wx=x+4; wx<x+w-4; wx+=9)
+          if(Math.random()>0.45) ctx.fillRect(wx,wy,3,5);
+      ctx.globalCompositeOperation='source-over';
+      x+=w+8+Math.random()*10; i++;
+    }
+    ctx.fillRect(CW*0.04, base, CW*0.92, 6); // ground
+  }, 2);
+}
+function mugPoints(){                // beer mug with foam + handle
+  return sampleDraw(ctx=>{
+    const x=CW*0.34, y=CH*0.20, w=CW*0.30, h=CH*0.62, r=18;
+    // body
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y); ctx.fill();
+    // handle
+    ctx.lineWidth=22; ctx.strokeStyle='#fff';
+    ctx.beginPath(); ctx.arc(x+w+14, y+h*0.5, 42, -Math.PI*0.6, Math.PI*0.6); ctx.stroke();
+    // foam blobs on top
+    for(let i=0;i<7;i++){ ctx.beginPath();
+      ctx.arc(x+10+i*(w-20)/6, y-2, 16+Math.random()*8, 0, 6.283); ctx.fill(); }
+  }, 3);
+}
+function archesPoints(){             // golden arches "M" (McDonald's)
+  return sampleDraw(ctx=>{
+    ctx.lineWidth=46; ctx.strokeStyle='#fff'; ctx.lineCap='round';
+    const base=CH*0.82, top=CH*0.30, midTop=CH*0.46;
+    ctx.beginPath();
+    ctx.moveTo(CW*0.30, base);
+    ctx.bezierCurveTo(CW*0.30, top, CW*0.44, top, CW*0.44, midTop);
+    ctx.lineTo(CW*0.44, base);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(CW*0.56, base);
+    ctx.lineTo(CW*0.56, midTop);
+    ctx.bezierCurveTo(CW*0.56, top, CW*0.70, top, CW*0.70, base);
+    ctx.stroke();
+  }, 3);
+}
+function fireworksPoints(){          // several radial bursts
+  const pts=[]; const bursts=[[-0.7,0.3],[0.6,0.45],[0,-0.1],[-0.3,-0.4],[0.4,-0.3]];
+  bursts.forEach(([bx,by])=>{
+    const rings=3+Math.floor(Math.random()*2);
+    for(let r=1;r<=rings;r++){
+      const cnt=22*r;
+      for(let i=0;i<cnt;i++){ const a=i/cnt*6.283;
+        pts.push([ bx + Math.cos(a)*0.12*r, by + Math.sin(a)*0.12*r ]); }
+    }
+  });
+  return pts;
+}
+
+/* expand/repeat a point list to exactly COUNT positions (Float32 xyz) */
+function toTarget(pts, depth=2.2){
+  const out = targP; const n=pts.length;
+  for(let i=0;i<COUNT;i++){
+    const p = pts[i % n];
+    out[i*3]   = p[0]*SCALE;
+    out[i*3+1] = p[1]*SCALE;
+    out[i*3+2] = (Math.random()-0.5)*depth + (seed[i]-0.5)*0.6;
+  }
+}
+
+/* set a flat target color (THREE.Color) */
+function setColor(hex){ const c=new THREE.Color(hex);
+  for(let i=0;i<COUNT;i++){ targC[i*3]=c.r; targC[i*3+1]=c.g; targC[i*3+2]=c.b; } }
+/* festive multicolor (finale) */
+function setColorFesta(){
+  const pal=[0xffcf4d,0xff5252,0x4d8bff,0x51e07a,0xffffff,0xff8a3d].map(h=>new THREE.Color(h));
+  for(let i=0;i<COUNT;i++){ const c=pal[(Math.random()*pal.length)|0];
+    targC[i*3]=c.r; targC[i*3+1]=c.g; targC[i*3+2]=c.b; }
+}
+
+/* ======================================================================
+   Timeline
+   ====================================================================== */
+const ACTS = [
+  { t:0.0,  build:()=>{ toTarget(textPoints(['HAPPY','BIRTHDAY']),3); setColor(0xffe69a); },
+    grid:0x2a4cff, lead:"a wish, just for you", main:"Happy Birthday 🎉", sub:"" },
+  { t:4.6,  build:()=>{ toTarget(textPoints(['THOMAS']),2); setColor(0xffcf4d); },
+    grid:0x6b4cff, lead:"to the one & only", main:"Thomas", sub:"another year, another level up" },
+  { t:9.0,  build:()=>{ toTarget(crystalPoints(),3); setColor(0x39d6ff); },
+    grid:0x18a0ff, lead:"summoner has reconnected", main:"GG on Year ∞", sub:"may your ganks land & your ELO climb 🗡️" },
+  { t:13.4, build:()=>{ toTarget(skylinePoints(),2); setColor(0xbfc6d0); },
+    grid:0x394b66, lead:"down in Baltimore", main:"“The game is the game.”", sub:"— and you, my friend, play it well 🎬" },
+  { t:18.0, build:()=>{ toTarget(mugPoints(),2.6); setColor(0xffb02e); },
+    grid:0xff8a3d, lead:"this round's on us", main:"Cheers! 🍺", sub:"crack open a cold one — you earned it" },
+  { t:22.6, build:()=>{ toTarget(archesPoints(),2.6); setColor(0xffc828); },
+    grid:0xff3b30, lead:"ba da ba ba ba", main:"i'm lovin' it 🍟", sub:"birthday Big Mac? absolutely on me" },
+  { t:27.2, build:()=>{ toTarget(fireworksPoints(),3.4); setColorFesta(); },
+    grid:0xffcf4d, lead:"from all of us", main:"Have the best year, Thomas! 🎂", sub:"thanks for being you 💛" },
+];
+const END = 33.5;
+const MORPH = 1.7;
+
+let started=false, startTime=0, actIdx=-1, finished=false;
+
+const cap = document.getElementById('cap');
+const capLead = cap.querySelector('.lead');
+const capMain = cap.querySelector('.main');
+const capSub  = cap.querySelector('.sub');
+let capTimer=null;
+
+function showCaption(a){
+  cap.classList.remove('show');
+  clearTimeout(capTimer);
+  capTimer = setTimeout(()=>{
+    capLead.textContent=a.lead; capMain.innerHTML=a.main; capSub.textContent=a.sub;
+    cap.classList.add('show');
+  }, 360);
+}
+
+function enterAct(i){
+  actIdx=i; const a=ACTS[i];
+  fromP.set(pos);                 // morph starts from current
+  a.build();                      // fills targP + targC
+  gridTargetColor.set(a.grid);
+  showCaption(a);
+}
+
+/* ======================================================================
+   Pointer / device parallax
+   ====================================================================== */
+let px=0, py=0, tpx=0, tpy=0;
+addEventListener('pointermove', e=>{
+  tpx=(e.clientX/innerWidth-.5); tpy=(e.clientY/innerHeight-.5);
+});
+addEventListener('deviceorientation', e=>{
+  if(e.gamma==null) return;
+  tpx=Math.max(-1,Math.min(1,e.gamma/45)); tpy=Math.max(-1,Math.min(1,(e.beta-45)/45));
+}, true);
+
+/* ======================================================================
+   Audio — public-domain "Happy Birthday" on a soft synth
+   ====================================================================== */
+let actx=null, musicGain=null, muted=false, musicTimer=null;
+const N = {C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.0,A4:440.0,B4:493.88,
+  C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99};
+const MEL = [ // [freq, beats]
+  ['G4',.5],['G4',.5],['A4',1],['G4',1],['C5',1],['B4',1.5],
+  ['G4',.5],['G4',.5],['A4',1],['G4',1],['D5',1],['C5',1.5],
+  ['G4',.5],['G4',.5],['G5',1],['E5',1],['C5',1],['B4',1],['A4',1.2],
+  ['F5',.5],['F5',.5],['E5',1],['C5',1],['D5',1],['C5',2],
+];
+function note(freq, t, dur, gain, type='triangle'){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(gain, t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0008, t+dur*0.95);
+  o.connect(g).connect(musicGain); o.start(t); o.stop(t+dur);
+}
+function playMusic(){
+  if(!actx) return;
+  const bpm=120, spb=60/bpm; let t=actx.currentTime+0.15;
+  const loopStart=t;
+  MEL.forEach(([nm,b])=>{
+    const f=N[nm], d=b*spb;
+    note(f, t, d, 0.18, 'triangle');           // melody
+    note(f/2, t, d*0.9, 0.08, 'sine');         // soft sub
+    t+=d;
+  });
+  const total=(t-loopStart)+0.6;
+  musicTimer=setTimeout(playMusic, total*1000);
+}
+function initAudio(){
+  try{
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    musicGain=actx.createGain(); musicGain.gain.value=0.5; musicGain.connect(actx.destination);
+    playMusic();
+  }catch(e){ /* no audio, no problem */ }
+}
+const muteBtn=document.getElementById('muteBtn');
+muteBtn.onclick=()=>{
+  muted=!muted; muteBtn.textContent=muted?'🔇':'🔊';
+  if(musicGain) musicGain.gain.setTargetAtTime(muted?0:0.5, actx.currentTime, 0.05);
+};
+
+/* ======================================================================
+   Loop
+   ====================================================================== */
+const gridColor = new THREE.Color(0x2a4cff);
+const gridTargetColor = new THREE.Color(0x2a4cff);
+const progressEl=document.getElementById('progress');
+const clock=new THREE.Clock();
+
+function frame(){
+  requestAnimationFrame(frame);
+  const dt=Math.min(clock.getDelta(),0.05);
+  const time=clock.elapsedTime;
+
+  // parallax easing
+  px+=(tpx-px)*0.05; py+=(tpy-py)*0.05;
+  camera.position.x = px*4; camera.position.y = -py*3;
+  camera.lookAt(0,0,0);
+
+  if(started && !finished){
+    const el=(performance.now()-startTime)/1000;
+    progressEl.style.width = Math.min(100, el/END*100)+'%';
+
+    // act selection
+    let want=0; for(let i=0;i<ACTS.length;i++) if(el>=ACTS[i].t) want=i;
+    if(want!==actIdx) enterAct(want);
+
+    // morph progress within current act
+    const a=ACTS[actIdx];
+    const localT=el-a.t;
+    let m=Math.min(1, localT/MORPH);
+    m = m<0.5 ? 4*m*m*m : 1-Math.pow(-2*m+2,3)/2;   // easeInOutCubic
+
+    for(let i=0;i<COUNT;i++){
+      const ix=i*3, iy=ix+1, iz=ix+2;
+      // base morph
+      let x=fromP[ix]+(targP[ix]-fromP[ix])*m;
+      let y=fromP[iy]+(targP[iy]-fromP[iy])*m;
+      let z=fromP[iz]+(targP[iz]-fromP[iz])*m;
+      // swirl during transit, fades as m->1
+      const sw=(1-m)*2.6*Math.sin(seed[i]*30+time*3);
+      x+=sw*Math.cos(seed[i]*12); y+=sw*Math.sin(seed[i]*8);
+      // gentle idle breathing once settled
+      const idle=m*0.18;
+      x+=Math.sin(time*1.1+seed[i]*20)*idle;
+      y+=Math.cos(time*1.3+seed[i]*18)*idle;
+      z+=Math.sin(time*0.9+seed[i]*25)*idle*1.6;
+      pos[ix]=x; pos[iy]=y; pos[iz]=z;
+      // color crossfade
+      col[ix]  += (targC[ix]-col[ix])*0.06;
+      col[iy]  += (targC[iy]-col[iy])*0.06;
+      col[iz]  += (targC[iz]-col[iz])*0.06;
+    }
+    cloudGeo.attributes.position.needsUpdate=true;
+    cloudGeo.attributes.color.needsUpdate=true;
+
+    if(el>=END) finish();
+  }
+
+  // slow cloud rotation for depth
+  cloud.rotation.z = Math.sin(time*0.1)*0.04;
+  cloud.rotation.y = Math.sin(time*0.13)*0.06;
+
+  // background motion
+  stars.rotation.y += dt*0.01; stars.rotation.x += dt*0.004;
+  grid.position.z = ((time*4) % 8) - 4;
+  gridColor.lerp(gridTargetColor, 0.03);
+  grid.material.color.copy(gridColor);
+
+  composer.render();
+}
+frame();
+
+/* ======================================================================
+   Start / finish
+   ====================================================================== */
+const gate=document.getElementById('gate');
+const hud=document.getElementById('hud');
+const replay=document.getElementById('replay');
+
+function start(){
+  if(started) return; started=true; finished=false;
+  startTime=performance.now(); actIdx=-1;
+  gate.classList.add('hide'); hud.classList.remove('hidden');
+  replay.classList.remove('show');
+  initAudio();
+}
+function finish(){
+  finished=true;
+  cap.classList.remove('show');
+  replay.classList.add('show');
+}
+document.getElementById('startBtn').onclick=start;
+document.getElementById('replayBtn').onclick=()=>{
+  // reset cloud to scattered then restart
+  for(let i=0;i<COUNT;i++){
+    const r=40+Math.random()*30, th=Math.random()*6.283, ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th); pos[i*3+1]=r*Math.sin(ph)*Math.sin(th); pos[i*3+2]=r*Math.cos(ph);
+  }
+  cloudGeo.attributes.position.needsUpdate=true;
+  started=false; replay.classList.remove('show');
+  start();
+};
+</script>
+</body>
+</html>
